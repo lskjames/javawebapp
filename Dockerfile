@@ -1,8 +1,15 @@
-FROM java:8
-ARG WEBCONTEXT=simplewebappdev
+# setup working directory
+FROM maven AS build
+RUN mkdir /app
+WORKDIR /app
 
-RUN curl -O http://archive.apache.org/dist/tomcat/tomcat-8/v8.0.20/bin/apache-tomcat-8.0.20.tar.gz
-RUN tar xzf apache-tomcat-8.0.20.tar.gz
-COPY simplewebapp.war apache-tomcat-8.0.20/webapps/${WEBCONTEXT}
+# maven build
+COPY src /app/src
+COPY pom.xml /app
+RUN mvn -f /app/pom.xml clean package
+
+# deploy to tomcat server
+FROM tomcat 
+COPY --from=build app/target/simplewebapp.war /usr/local/tomcat/webapps
 EXPOSE 8080
-CMD apache-tomcat-8.0.20/bin/startup.sh && tail -f apache-tomcat-8.0.20/logs/catalina.out
+CMD ["catalina.sh", "run"]
